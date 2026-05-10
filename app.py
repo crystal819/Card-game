@@ -1,13 +1,11 @@
 from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
+from cards import Game
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-game = {
-    "turn": "p1",
-    "cards": ["2s", "3d"]
-}
+games = {}
 
 
 @app.route("/")
@@ -24,10 +22,20 @@ def handle_message(data):
     })
 
 @socketio.on("join_game")
-def join_game():
-    print("player joined")
-    emit("game_state", game)
+def join_game(data):
 
+    game_id = data["game_id"]
+
+    join_room(game_id)
+
+    if game_id not in games:
+        games[game_id] = Game()
+
+    emit(
+        "game_state",
+        games[game_id].get_state(),
+        room=game_id
+    )
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
